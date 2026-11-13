@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Current Batch</title>
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --surface: #141414;
+    --text: #f5f5f5;
+    --muted: #9a9a9a;
+    --border: #2a2a2a;
+    --accent: #e10600;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0a0a0a;
+      --surface: #141414;
+      --text: #f5f5f5;
+      --muted: #9a9a9a;
+      --border: #2a2a2a;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    width: 100%;
+    max-width: 480px;
+    padding: 36px 28px;
+    text-align: center;
+    border-top: 6px solid var(--accent);
+  }
+  .now-label {
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .batch-name {
+    font-size: 2.6rem;
+    font-weight: 800;
+    color: var(--accent);
+    margin: 10px 0 6px;
+  }
+  .batch-time {
+    font-size: 1.1rem;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    margin-bottom: 26px;
+  }
+  .countdown-label {
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .countdown {
+    font-size: 2rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    margin: 6px 0 26px;
+  }
+  .clock {
+    font-size: 0.95rem;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+  .idle .batch-name { color: var(--muted); font-size: 1.8rem; }
+</style>
+</head>
+<body>
+  <main class="card" id="card">
+    <div class="now-label" id="now-label">Current batch</div>
+    <div class="batch-name" id="batch-name">--</div>
+    <div class="batch-time" id="batch-time">--</div>
+    <div class="countdown-label" id="countdown-label">Time remaining</div>
+    <div class="countdown" id="countdown">--:--:--</div>
+    <div class="clock" id="clock">--:--:--</div>
+  </main>
+
+  <script>
+    const batches = [
+      { name: 'Batch A', start: 9,  end: 12, label: '9:00:00 AM – 12:00:00 PM' },
+      { name: 'Batch B', start: 12, end: 15, label: '12:00:00 PM – 3:00:00 PM' },
+      { name: 'Batch C', start: 15, end: 18, label: '3:00:00 PM – 6:00:00 PM' }
+    ];
+
+    const pad = n => String(n).padStart(2, '0');
+    const fmt = s => pad(Math.floor(s / 3600)) + ':' + pad(Math.floor(s % 3600 / 60)) + ':' + pad(s % 60);
+
+    function update() {
+      const now = new Date();
+      const secs = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+      document.getElementById('clock').textContent = fmt(secs);
+
+      const card = document.getElementById('card');
+      const active = batches.find(b => secs >= b.start * 3600 && secs < b.end * 3600);
+      const next = batches.find(b => secs < b.start * 3600);
+
+      if (active) {
+        card.classList.remove('idle');
+        const total = (active.end - active.start) * 3600;
+        const elapsed = secs - active.start * 3600;
+        const progress = Math.min(Math.max(elapsed / total, 0), 1);
+        // Hue 120 = green (start), hue 0 = red (end)
+        const color = 'hsl(' + Math.round(120 * (1 - progress)) + ', 85%, 50%)';
+        card.style.borderTopColor = color;
+        document.getElementById('batch-name').style.color = color;
+        document.getElementById('countdown').style.color = color;
+        document.getElementById('now-label').textContent = 'Current batch';
+        document.getElementById('batch-name').textContent = active.name;
+        document.getElementById('batch-time').textContent = active.label;
+        document.getElementById('countdown-label').textContent = 'Time remaining';
+        document.getElementById('countdown').textContent = fmt(active.end * 3600 - secs);
+      } else {
+        card.style.borderTopColor = '';
+        document.getElementById('batch-name').style.color = '';
+        document.getElementById('countdown').style.color = '';
+        card.classList.add('idle');
+        document.documentElement.style.setProperty('--accent', '#e10600');
+        document.getElementById('now-label').textContent = next ? 'Next batch' : 'Batches finished';
+        document.getElementById('batch-name').textContent = next ? next.name : 'See you tomorrow';
+        document.getElementById('batch-time').textContent = next ? next.label : '';
+        document.getElementById('countdown-label').textContent = next ? 'Starts in' : '';
+        document.getElementById('countdown').textContent = next ? fmt(next.start * 3600 - secs) : '';
+      }
+    }
+
+    update();
+    setInterval(update, 1000);
+  </script>
+</body>
+</html>
